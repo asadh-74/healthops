@@ -1,6 +1,6 @@
 # 🏥 HealthOps — Public Health Vaccination & Stock Platform (DevOps Project)
 
-![CI](https://github.com/YOUR_USERNAME/healthops/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/asadh-74/healthops/actions/workflows/ci.yml/badge.svg)
 
 A production-style, fully containerised platform for a **government health department** to manage
 vaccination appointments and monitor clinic vaccine stock — built to demonstrate an end-to-end
@@ -44,7 +44,7 @@ flowchart LR
 ## Quick start
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/healthops.git && cd healthops
+git clone https://github.com/asadh-74/healthops.git && cd healthops
 cp .env.example .env          # edit the passwords
 docker compose up -d --build
 ```
