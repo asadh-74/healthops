@@ -16,6 +16,9 @@ from app.seed import seed  # noqa: E402
 
 @pytest.fixture()
 def client():
+    from app.rate_limit import _attempts
+
+    _attempts.clear()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     seed()

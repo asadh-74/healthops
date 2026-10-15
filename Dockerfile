@@ -18,6 +18,7 @@ COPY --from=builder /install /usr/local
 COPY app ./app
 COPY migrations ./migrations
 COPY alembic.ini .
+COPY scripts/start_render.py ./scripts/start_render.py
 COPY --from=frontend /ui/dist ./app/static
 USER appuser
 EXPOSE 8000

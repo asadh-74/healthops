@@ -11,3 +11,5 @@ Locally verified during implementation:
 CI is configured to repeat the API tests on SQLite and PostgreSQL 16, compile/build the frontend, build the Docker image, and run Trivy. A configured check is not a claim that its latest run passed; consult GitHub Actions for results.
 
 Not verified in the authoring environment: browser rendering/interactions, Docker Compose startup, n8n editor import/execution, Grafana UI, PostgreSQL runtime, public deployment, penetration testing or load testing. Docker and browser verification tools were unavailable. Validate these before recording the final portfolio demo.
+
+Follow-up: GitHub API test jobs passed on SQLite and PostgreSQL. The image job failed at action resolution because the inherited Trivy action tag was unavailable; updated to v0.36.0. MySQL schema compilation, required CA validation, and TLS/credential configuration tests were added; no live Aiven connection has been tested.

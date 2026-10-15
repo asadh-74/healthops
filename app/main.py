@@ -13,6 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from . import models as m
 from .auth import current, roles, secret, token, verify
 from .database import get_db
+from .rate_limit import check_login
 
 
 def now():
@@ -26,7 +27,9 @@ async def lifespan(app):
 
 
 app = FastAPI(title="HealthOps", version="2.0.0", lifespan=lifespan)
-Instrumentator().instrument(app).expose(app, include_in_schema=False)
+instrumentator = Instrumentator().instrument(app)
+if os.getenv("EXPOSE_METRICS", "false").lower() == "true":
+    instrumentator.expose(app, include_in_schema=False)
 manager = roles("admin", "manager")
 
 
@@ -49,6 +52,7 @@ class Login(BaseModel):
 
 @app.post("/api/auth/login")
 def login(body: Login, db=Depends(get_db)):
+    check_login(body.username)
     user = db.scalar(select(m.User).where(m.User.username == body.username))
     if not user or not verify(body.password, user.password_hash):
         raise HTTPException(401, "Invalid username or password")

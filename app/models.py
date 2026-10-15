@@ -57,7 +57,7 @@ class Notification(Base):
     event_key: Mapped[str] = mapped_column(String(160), unique=True)
     kind: Mapped[str] = mapped_column(String(40))
     message: Mapped[str] = mapped_column(String(2000))
-    status: Mapped[str] = mapped_column(default="demo_only")
+    status: Mapped[str] = mapped_column(String(20), default="demo_only")
     created: Mapped[datetime] = mapped_column(default=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 
@@ -67,5 +67,5 @@ class Transfer(Base):
     batch_id: Mapped[int] = mapped_column(ForeignKey("batches.id"))
     destination_id: Mapped[int] = mapped_column(ForeignKey("facilities.id"))
     doses: Mapped[int]
-    status: Mapped[str] = mapped_column(default="pending")
-    requested_by: Mapped[str]
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    requested_by: Mapped[str] = mapped_column(String(80))

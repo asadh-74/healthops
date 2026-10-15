@@ -17,6 +17,10 @@ An industry-style **portfolio demonstration** for managing fictional clinic appo
 - Separate automation credential; daily/event deduplication and retry-friendly demo inbox writes.
 - Audit trail, Alembic initialization, Prometheus request metrics, Grafana datasource, Nginx rate limits, CI tests and image scanning.
 
+## Free Render + Aiven MySQL hosting
+
+See [Render + Aiven setup](docs/RENDER_AIVEN.md). The hosted app supports verified TLS connections to Aiven MySQL with small connection pools. `render.yaml` declares a free web service; credentials must be supplied privately in Render. n8n remains a separate local service for free demos.
+
 ## Run locally with Docker
 
 Requires Docker Engine/Desktop with Compose v2 and Python 3 for generating configuration.

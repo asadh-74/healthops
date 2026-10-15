@@ -19,6 +19,7 @@ services:
     build: .
     restart: unless-stopped
     environment:
+      EXPOSE_METRICS: "true"
       JWT_SECRET: ${JWT_SECRET:?Run python scripts/setup_demo.py}
       AUTOMATION_TOKEN: ${AUTOMATION_TOKEN:?Run setup}
       DEMO_PASSWORD: ${DEMO_PASSWORD:?Run setup}
