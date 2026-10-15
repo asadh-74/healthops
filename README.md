@@ -1,86 +1,98 @@
-# 🏥 HealthOps — Public Health Vaccination & Stock Platform (DevOps Project)
+# HealthOps
+### Full-stack clinic operations & n8n workflow automation
 
-![CI](https://github.com/asadh-74/healthops/actions/workflows/ci.yml/badge.svg)
+An industry-style **portfolio demonstration** for managing fictional clinic appointments, vaccine batches, inter-clinic transfers, and operational notifications. Built with React, TypeScript, FastAPI, PostgreSQL, Docker, and n8n.
 
-A production-style, fully containerised platform for a **government health department** to manage
-vaccination appointments and monitor clinic vaccine stock — built to demonstrate an end-to-end
-**DevOps workflow**: containerisation, CI/CD, security scanning, reverse proxy and observability.
+**Not a clinical system or a production-readiness claim. All patient references are fictional `DEMO-*` IDs. No email, SMS, or external notification delivery exists in this build.**
 
-## The real-world problem
+## Product capabilities
 
-District clinics often run out of vaccines unnoticed, while patients are booked for doses that don't exist.
-Health officials have no live view of stock across facilities. HealthOps solves this:
+- Responsive operations dashboard connected to the API, with inventory by clinic, appointment search, and role-aware actions.
+- Admin, manager, and nurse accounts; scrypt password hashes and short-lived signed bearer tokens held only in browser memory.
+- Batch inventory with expiration dates, receipt and wastage audit records, and first-expiring eligible batch selection.
+- Conditional stock updates prevent two bookings from consuming the last available dose. Booking failures roll back reservations.
+- Appointment booking, rescheduling, and idempotent cancellation with stock restoration.
+- Manager transfer requests and administrator approval; stock moves in one transaction.
+- Four importable n8n workflows: low-stock watch, next-day reminders, expiry review, and daily operations digest.
+- Separate automation credential; daily/event deduplication and retry-friendly demo inbox writes.
+- Audit trail, Alembic initialization, Prometheus request metrics, Grafana datasource, Nginx rate limits, CI tests and image scanning.
 
-- Booking an appointment **atomically decrements stock** and rejects bookings when stock is exhausted.
-- `/stock/low` shows which facilities need urgent resupply.
-- Live **Grafana dashboards** track total doses per vaccine and API health.
-- **No PII is stored** — patients are referenced by pseudonymous IDs (privacy-by-design).
+## Free Render + Aiven MySQL hosting
+
+See [Render + Aiven setup](docs/RENDER_AIVEN.md). The hosted app supports verified TLS connections to Aiven MySQL with small connection pools. `render.yaml` declares a free web service; credentials must be supplied privately in Render. n8n remains a separate local service for free demos.
+
+## Run locally with Docker
+
+Requires Docker Engine/Desktop with Compose v2 and Python 3 for generating configuration.
+
+```bash
+git clone https://github.com/asadh-74/healthops.git
+cd healthops
+python scripts/setup_demo.py
+docker compose build api
+docker compose up -d db
+docker compose run --rm api alembic upgrade head
+docker compose run --rm api python -m app.seed
+docker compose up -d
+```
+
+Read `DEMO_PASSWORD` from your local `.env`; do not upload or screenshot that file. Sign in as `demo.admin`, `demo.manager`, or `demo.nurse` with this password. Seed data is created explicitly, never on public requests. Re-running seed leaves an initialized database unchanged.
+
+| Service | Local URL |
+|---|---|
+| Dashboard | http://localhost:8080 |
+| API reference | http://localhost:8080/docs |
+| n8n editor | http://localhost:5678 |
+| Grafana | http://localhost:3000 |
+
+All published ports bind to loopback. n8n requires its own initial owner-account setup. Grafana uses `admin` and the generated `GRAFANA_PASSWORD`. n8n's local HTTP cookie setting is for localhost only; use TLS and secure cookies before remote hosting.
+
+## n8n setup
+
+1. Open n8n and create the local owner account.
+2. Import the four JSON files in `n8n/` using **Import from File**.
+3. Create an **HTTP Header Auth** credential: name `Authorization`, value `Bearer ` followed by your local `AUTOMATION_TOKEN`.
+4. Select that credential on each **Write to demo inbox** HTTP Request node.
+5. Execute manually. Inspect the result and open HealthOps → Demo inbox.
+6. Enable schedules only after the manual execution succeeds. Workflows are shipped inactive. Each HTTP node retries up to three times; the API deduplicates events.
+
+The dashboard's **Run demo preview** invokes the same API business logic directly. It does **not** pretend to be an n8n execution or report n8n scheduler health. Scheduled orchestration requires the imported workflows above. Workflow JSON contains no tokens, credential IDs, recipient addresses, or mail nodes.
 
 ## Architecture
 
 ```mermaid
-flowchart LR
-  U[Client / Clinic App] --> N[Nginx<br/>rate-limit + security headers]
-  N --> A[FastAPI API<br/>non-root container]
-  A --> D[(PostgreSQL 16<br/>persistent volume)]
-  P[Prometheus] -- scrapes /metrics --> A
-  G[Grafana] --> P
-  GH[GitHub Actions] -- test · lint · Trivy scan · push --> R[(GHCR image registry)]
+flowchart TD
+  UI[React dashboard] --> Proxy[Nginx]
+  Proxy --> API[FastAPI and role checks]
+  API --> DB[(PostgreSQL)]
+  N8N[n8n schedules and retries] --> API
+  API --> Inbox[Persistent demo inbox]
+  Metrics[Prometheus] --> API
+  Grafana[Grafana] --> Metrics
 ```
 
-## DevOps features
+Roles are **network-wide**, not clinic-scoped or multi-tenant. Admins manage facilities and approve transfers; managers receive/waste stock, request transfers, run previews and view audit history; nurses view operational data and manage appointments. No public account registration endpoint is exposed.
 
-| Area | Implementation |
-|---|---|
-| Containerisation | Multi-stage Dockerfile, slim base, **non-root user**, `HEALTHCHECK` |
-| Orchestration | Docker Compose with health-gated startup (`depends_on: service_healthy`) |
-| Network security | API not exposed directly; isolated `backend`/`frontend` networks; `/metrics` blocked at proxy |
-| Reverse proxy | Nginx with rate limiting, security headers, hidden version |
-| CI/CD | GitHub Actions: Ruff lint → Pytest → Docker build → **Trivy CVE scan** → push to GHCR |
-| Observability | Prometheus metrics (request latency, errors, custom stock gauge) + Grafana |
-| Secrets | `.env` based config, never committed |
-| Testing | Pytest integration tests of the booking flow |
-
-## Quick start
+## Development and tests
 
 ```bash
-git clone https://github.com/asadh-74/healthops.git && cd healthops
-cp .env.example .env          # edit the passwords
-docker compose up -d --build
+python -m venv .venv
+# Activate .venv using your shell's activation command.
+pip install -r requirements-dev.txt
+pytest -q
+ruff check .
+npm ci --prefix frontend
+npm run build --prefix frontend
 ```
 
-| Service | URL |
-|---|---|
-| API docs (Swagger) | http://localhost/docs |
-| Health check | http://localhost/health |
-| Grafana | http://localhost:3000 (user `admin`) |
+Docker builds the UI into the API image. For local Python serving, copy `frontend/dist/` to `app/static/`, export the `.env` settings, run `alembic upgrade head`, seed, then `uvicorn app.main:app`. SQLite is a development fallback. PostgreSQL is the deployment target and CI runs the integration suite against both databases.
 
-### Try it
+## Existing v1 installations
 
-```bash
-curl -X POST localhost/facilities -H 'Content-Type: application/json' \
-  -d '{"name":"Rural Clinic A","district":"North"}'
-curl -X PUT localhost/stock -H 'Content-Type: application/json' \
-  -d '{"facility_id":1,"vaccine":"MMR","doses":100}'
-curl -X POST localhost/appointments -H 'Content-Type: application/json' \
-  -d '{"facility_id":1,"patient_ref":"p-10001","vaccine":"MMR","slot":"2026-11-01T09:00:00"}'
-curl "localhost/stock/low?threshold=200"
-```
+Back up the database before upgrading. This version introduces authenticated `/api/*` routes and batch-based inventory. The migration preserves legacy `vaccine_stock` and `appointments` tables; **it does not invent expiry dates or migrate legacy bookings**. Existing `facilities` are retained. Do not seed a database containing real information. Inventory and historical bookings require an explicitly reviewed data-conversion plan before operational migration. The initial migration is forward-only; rollback uses a verified backup.
 
-In Grafana → Explore, query `healthops_total_doses` or `rate(http_requests_total[1m])`.
+## Verification and honest limits
 
-## Run tests locally
+See [validation notes](docs/VALIDATION.md), [portfolio presentation](docs/PORTFOLIO.md), and [security model](docs/SECURITY.md).
 
-```bash
-make test
-```
-
-## Roadmap / production hardening
-
-- Alembic migrations, JWT/OIDC auth with role-based access (nurse / district officer)
-- TLS via Let's Encrypt (Traefik/Caddy), Terraform for AWS (ECS/EC2 + RDS)
-- Alertmanager rules for low stock and 5xx rate, centralised logging (Loki)
-- Kubernetes manifests / Helm chart
-
-## Tech stack
-Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL · Docker · Docker Compose · Nginx · Prometheus · Grafana · GitHub Actions · Trivy
+Production work still includes tenant/clinic scoping, managed identity and token revocation, TLS, backup/restore drills, dependency patch review, deployment load testing, durable operational alerting, and a clinical/privacy review. Appointment times are user-selected; provider calendars, capacity rules, and clinical eligibility are not implemented. Reports are deterministic; no AI or fabricated model metrics are claimed.

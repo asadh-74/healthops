@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: healthops-demo
+    runtime: docker
+    plan: free
+    branch: feature/healthops-fullstack
+    dockerfilePath: ./Dockerfile
+    dockerCommand: python scripts/start_render.py
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_PORT
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: MYSQL_DATABASE
+        value: defaultdb
+      - key: MYSQL_SSL_CA
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: AUTOMATION_TOKEN
+        generateValue: true
+      - key: DEMO_PASSWORD
+        generateValue: true
+      - key: SEED_DEMO
+        value: "true"
