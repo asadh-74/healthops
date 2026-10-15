@@ -1,7 +1,8 @@
 .git
-.github
-tests
-__pycache__
-*.pyc
-*.db
 .env
+.venv
+**/node_modules
+**/dist
+**/__pycache__
+*.db*
+.pytest_cache

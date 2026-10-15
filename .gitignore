@@ -5,3 +5,10 @@ __pycache__/
 .venv/
 .pytest_cache/
 .ruff_cache/
+
+.venv/
+node_modules/
+frontend/dist/
+app/static/
+*.db
+*.db-*

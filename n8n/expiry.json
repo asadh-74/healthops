@@ -1,0 +1,102 @@
+{
+  "name": "HealthOps \u00b7 expiry \u00b7 DEMO ONLY",
+  "active": false,
+  "nodes": [
+    {
+      "id": "manual",
+      "name": "Manual preview",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "schedule",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 24
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "request",
+      "name": "Write to demo inbox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/automation/expiry",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "note",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -210
+      ],
+      "parameters": {
+        "content": "DEMO ONLY: create Header Auth credential: Authorization = Bearer <AUTOMATION_TOKEN from local .env>. Select it on the HTTP node. Execute manually first. No email/SMS nodes; results go to HealthOps demo inbox. Never paste secrets into exported workflow JSON.",
+        "width": 460,
+        "height": 200
+      }
+    }
+  ],
+  "connections": {
+    "Manual preview": {
+      "main": [
+        [
+          {
+            "node": "Write to demo inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Write to demo inbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Karachi"
+  }
+}

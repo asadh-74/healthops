@@ -4,3 +4,6 @@ sqlalchemy==2.0.35
 psycopg2-binary==2.9.9
 prometheus-fastapi-instrumentator==7.0.0
 prometheus-client==0.21.0
+
+alembic==1.13.3
+PyJWT==2.9.0
