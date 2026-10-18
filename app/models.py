@@ -29,3 +29,11 @@ class Appointment(Base):
     vaccine: Mapped[str] = mapped_column(String(60))
     slot: Mapped[datetime] = mapped_column(DateTime)
     status: Mapped[str] = mapped_column(String(20), default="booked")
+
+
+class Activity(Base):
+    __tablename__ = "portfolio_activity"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    action: Mapped[str] = mapped_column(String(80))
+    detail: Mapped[str] = mapped_column(String(250))
+    created: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

@@ -92,3 +92,13 @@ The root URL provides a responsive clinic dashboard: create a fictional facility
 Render single-service settings: Python 3.12, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1`. Set `DATABASE_URL=sqlite:////tmp/healthops-demo.db` for an explicitly temporary free demo. Records reset on service replacement. For durable use, configure a separately managed PostgreSQL database and add authentication before accepting real information.
 
 This is a public fictional-data demo, not a government deployment or a clinical system. Authentication remains a future requirement. The Docker Compose stack provides the separate Prometheus/Grafana services locally; those are not included in the single-service hosted demo.
+
+
+## Complete recording workflow
+1. Click **Load fictional demo clinics** to seed sample facilities idempotently.
+2. Book an appointment against available vaccine stock. Show stock and booked totals changing.
+3. Restock that clinic and show the new quantity and activity trail.
+4. Cancel the appointment to return exactly one dose; repeated cancellation is rejected. A completed appointment keeps its consumed dose.
+5. Download the stock CSV report.
+
+Booking and cancellation use database transactions. Automated tests cover competing bookings for the last dose and one-time cancellation refunds. This public portfolio demonstration has no authentication: enter fictional records only. SQLite storage on the free deployment is temporary, not a production medical record system.

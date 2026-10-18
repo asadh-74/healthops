@@ -47,3 +47,25 @@ def test_last_dose_concurrent_reservation():
     assert sorted(codes) == [201, 409]
     stock = [r for r in client.get('/stock').json() if r['facility_id'] == fid]
     assert stock[0]['doses'] == 0
+
+
+def test_cancel_returns_stock_once_and_completion_does_not():
+    fid=client.post('/facilities',json={'name':'Lifecycle Demo Clinic','district':'Demo'}).json()['id']
+    client.put('/stock',json={'facility_id':fid,'vaccine':'MMR','doses':3})
+    body={'facility_id':fid,'vaccine':'MMR','patient_ref':'demo-life','slot':'2026-11-02T09:00:00'}
+    appt=client.post('/appointments',json=body).json()
+    assert client.post(f"/appointments/{appt['id']}/cancel").status_code==200
+    assert client.post(f"/appointments/{appt['id']}/cancel").status_code==409
+    assert [r for r in client.get('/stock').json() if r['facility_id']==fid][0]['doses']==3
+    appt=client.post('/appointments',json=body).json()
+    assert client.post(f"/appointments/{appt['id']}/complete").status_code==200
+    assert client.post(f"/appointments/{appt['id']}/cancel").status_code==409
+    assert [r for r in client.get('/stock').json() if r['facility_id']==fid][0]['doses']==2
+    assert client.post('/stock/restock',json={'facility_id':fid,'vaccine':'MMR','doses':5}).json()['doses']==7
+    assert 'Lifecycle Demo Clinic' in client.get('/report.csv').text
+    assert client.get('/overview').json()['activity']
+
+
+def test_seed_is_idempotent():
+    client.post('/demo/seed');before=len(client.get('/facilities').json())
+    client.post('/demo/seed');assert len(client.get('/facilities').json())==before
