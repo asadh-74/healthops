@@ -3,10 +3,12 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from pathlib import Path
 from prometheus_client import Gauge
 from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text
+from sqlalchemy import func, select, text, update
 from sqlalchemy.orm import Session
 
 from . import models
@@ -105,15 +107,14 @@ def low_stock(threshold: int = 50, db: Session = Depends(get_db)):
 
 @app.post("/appointments", status_code=201, tags=["appointments"])
 def book(body: AppointmentIn, db: Session = Depends(get_db)):
-    stock = db.scalar(
-        select(models.VaccineStock).where(
-            models.VaccineStock.facility_id == body.facility_id,
-            models.VaccineStock.vaccine == body.vaccine,
-        )
-    )
-    if not stock or stock.doses < 1:
+    changed = db.execute(update(models.VaccineStock).where(
+        models.VaccineStock.facility_id == body.facility_id,
+        models.VaccineStock.vaccine == body.vaccine,
+        models.VaccineStock.doses > 0,
+    ).values(doses=models.VaccineStock.doses - 1))
+    if changed.rowcount != 1:
+        db.rollback()
         raise HTTPException(409, "No doses available at this facility")
-    stock.doses -= 1
     appt = models.Appointment(**body.model_dump())
     db.add(appt)
     db.commit()
@@ -138,3 +139,16 @@ def _refresh_metrics(db: Session):
     )
     for vaccine, total in rows:
         TOTAL_DOSES.labels(vaccine=vaccine).set(total or 0)
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(Path(__file__).parent / "static" / "index.html")
+
+@app.get("/stock", tags=["stock"])
+def all_stock(db: Session = Depends(get_db)):
+    return db.scalars(select(models.VaccineStock)).all()
+
+@app.get("/appointments", tags=["appointments"])
+def appointments(db: Session = Depends(get_db)):
+    return db.scalars(select(models.Appointment).order_by(models.Appointment.id.desc()).limit(100)).all()

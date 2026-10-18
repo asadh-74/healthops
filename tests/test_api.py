@@ -29,3 +29,21 @@ def test_full_booking_flow():
 def test_duplicate_facility():
     client.post("/facilities", json={"name": "Dup", "district": "East"})
     assert client.post("/facilities", json={"name": "Dup", "district": "East"}).status_code == 409
+
+
+def test_dashboard_and_stock_listing():
+    assert client.get('/').status_code == 200
+    assert isinstance(client.get('/stock').json(), list)
+    assert isinstance(client.get('/appointments').json(), list)
+
+
+def test_last_dose_concurrent_reservation():
+    from concurrent.futures import ThreadPoolExecutor
+    fid = client.post('/facilities', json={'name': 'Concurrent demo clinic', 'district': 'Demo'}).json()['id']
+    client.put('/stock', json={'facility_id': fid, 'vaccine': 'MMR', 'doses': 1})
+    payload = {'facility_id': fid, 'patient_ref': 'demo-race', 'vaccine': 'MMR', 'slot': '2026-11-01T09:00:00'}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        codes = list(pool.map(lambda _: client.post('/appointments', json=payload).status_code, range(2)))
+    assert sorted(codes) == [201, 409]
+    stock = [r for r in client.get('/stock').json() if r['facility_id'] == fid]
+    assert stock[0]['doses'] == 0

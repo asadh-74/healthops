@@ -84,3 +84,11 @@ make test
 
 ## Tech stack
 Python 3.12 · FastAPI · SQLAlchemy · PostgreSQL · Docker · Docker Compose · Nginx · Prometheus · Grafana · GitHub Actions · Trivy
+
+## Public portfolio demo
+
+The root URL provides a responsive clinic dashboard: create a fictional facility, set stock, book an appointment, and inspect low-stock items and recent bookings. Reservations use a conditional SQL update so concurrent requests cannot decrement the last dose twice.
+
+Render single-service settings: Python 3.12, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1`. Set `DATABASE_URL=sqlite:////tmp/healthops-demo.db` for an explicitly temporary free demo. Records reset on service replacement. For durable use, configure a separately managed PostgreSQL database and add authentication before accepting real information.
+
+This is a public fictional-data demo, not a government deployment or a clinical system. Authentication remains a future requirement. The Docker Compose stack provides the separate Prometheus/Grafana services locally; those are not included in the single-service hosted demo.
